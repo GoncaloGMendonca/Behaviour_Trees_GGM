@@ -7,99 +7,133 @@ using Panda;
 public class Guard_inimigo : MonoBehaviour
 {
 
-    Vector3 GuardPosition;
+ 
+    Vector3 GuardPosition; 
+
+
     [SerializeField] NavMeshAgent enemieAgent;
     [SerializeField] Transform target;
+    [SerializeField] GameObject targets;
+
 
     public string spawnerName;
+    
     float distanceBtwPlayerandEnemie;
     float EnemieVisionDistanceMax = 30f;
+
     float timer;
     float maxTimeBeforeFollowPlayer = 0.2f;
     float maxDistanceFollowing = 100f;
     public Vector3 directionGiveByAlly;
 
 
+
     
     [Task]
+    bool Idle = true;
+    [Task]
     bool CanSeePlayer;
-
-    [Task]
-    bool isPatrolling = true; 
-
-    [Task]
-    bool isChasing; 
-
-
     [Task]
     bool lostPlayer;
 
     [Task]
-    bool alertEnemieHelp;
-
- 
+    bool isPatrolling = true; 
     [Task]
-    bool Idle = true;
+    bool isChasing;
+    [Task]
+    bool returningPoint; 
 
 
-    private void Awake()
+
+
+
+
+
+
+
+
+    private void Start()
     {
-       GuardPosition = this.transform.position; 
        
+        GuardPosition = enemieAgent.transform.position;
+        targets = GameObject.FindGameObjectWithTag("Player");
     }
+
 
 
     [Task]
     void Idling()
     {
-       
-        if (!CanSeePlayer)
+      
+        if (Idle)
         {
-            if (Idle)
-            {
-                Idle = false;
+          
+              
                 lostPlayer = false;
+                returningPoint = false;
                 isPatrolling = true;
-                Vector3 x = this.transform.position;
-                enemieAgent.destination = x;
+             
+               
                 enemieAgent.destination = GuardPosition;
-                ThisTask.Succeed();
-            }
-            else
-            {
-            
-            }
         }
+      
+        enemieAgent.speed = 0f;
+        enemieAgent.velocity = Vector3.zero;
+          
+          Idle = false;
+        ThisTask.Succeed();
+
     }
+
+
 
 
     [Task]
     void CanSeePlayerTask()
     {
-        distanceBtwPlayerandEnemie = Vector3.Distance(transform.position, target.position);
+        distanceBtwPlayerandEnemie = Vector3.Distance(transform.position, targets.transform.position);
 
         if (distanceBtwPlayerandEnemie <= EnemieVisionDistanceMax)
         {
+            enemieAgent.speed = 3.5f;
             CanSeePlayer = true;
+                                
             ThisTask.Succeed();
 
         }
         else
         {
-            CanSeePlayer = false;          
-            lostPlayer = true;
+              CanSeePlayer = false;
             ThisTask.Succeed();
         }
-     
 
     }
 
+    [Task]
+    void CantSeePlayerTask()
+    {
+        
+        if (!CanSeePlayer && !isChasing)
+        {
+            
+            ThisTask.Fail();
+        }
+        
+        if (!CanSeePlayer && isChasing)
+        {
+            isChasing = false;
+            lostPlayer = true; 
+            ThisTask.Succeed();
+        }
+    }
+
+
     [Task] 
-    void AlertNearEnemies()
+    void AlertNearEnemies() 
     {
         if (CanSeePlayer)
         {
-          
+           
 
             isChasing = true;
 
@@ -107,7 +141,7 @@ public class Guard_inimigo : MonoBehaviour
         }
         else
         {
-            isChasing = false;
+         
             ThisTask.Fail();
 
         }
@@ -120,50 +154,88 @@ public class Guard_inimigo : MonoBehaviour
     [Task]
     void ChaseThePlayerTask()
     {
-
         if (isChasing)
         {
-            
+         
 
             timer += Time.deltaTime;
             if (timer >= maxTimeBeforeFollowPlayer)
             {
                 
-                transform.LookAt(target);
-                Vector3 moveTo = Vector3.MoveTowards(transform.position, target.position, maxDistanceFollowing);
+                transform.LookAt(targets.transform);
+                Vector3 moveTo = Vector3.MoveTowards(transform.position, targets.transform.position, maxDistanceFollowing);
                 enemieAgent.destination = moveTo;
                 directionGiveByAlly = enemieAgent.destination;
-
+                timer = 0f;
             }
             ThisTask.Succeed();
 
         }
-        
+        else
+        {
+            ThisTask.Fail();
+        }
 
     }
 
 
 
+    [Task]
+
+    void LostPlayerPanic()
+    {
+        if (lostPlayer && !returningPoint)
+        {
+            enemieAgent.destination = this.transform.position;
+            
+
+            timer += Time.deltaTime;
+            if (timer >= 30f)
+            {
+               
+                timer = 0f;
+                lostPlayer = false;
+                isChasing = false;
+                returningPoint = true;
+                ThisTask.Succeed();
+
+            }
+            
+
+        }
+        else
+        {
+            ThisTask.Fail();
+        }
+     
 
 
+    }
 
- 
 
     [Task]
     void GoBackToOriginPosition()
     {
-        if (isPatrolling)
+        float REF = Vector3.Distance(enemieAgent.transform.position, setDestinationReturn(GuardPosition));
+
+        if (returningPoint)
         {
+            Debug.Log("1");
             setDestination(GuardPosition);
-            isPatrolling = false;
-            ThisTask.Succeed();
         }
+        if (REF <= 2f)
+        {
+            returningPoint = false;
+             Idle = true;
+        }
+        #region outra abordagem:
       
+        #endregion
+        ThisTask.Succeed();
 
     }
 
 
-  
     [Task]
     void setDestination(Vector3 Destination)
     {        
@@ -171,26 +243,18 @@ public class Guard_inimigo : MonoBehaviour
             ThisTask.Succeed();
     }
 
-
-  
-
-    [Task]
-
-    void LostPlayerPanic()
+    Vector3 setDestinationReturn(Vector3 Destination)
     {
-        if (lostPlayer)
-        {
-            CanSeePlayer = false;
-            alertEnemieHelp = false;
-            ThisTask.Succeed();
-
-        }
-    
-
+        enemieAgent.destination = Destination;
+        return enemieAgent.destination;
+        ThisTask.Succeed();
     }
 
 
-    [Task]
+
+  
+
+[Task]
 
     void AvoidLost()
     {
@@ -200,10 +264,11 @@ public class Guard_inimigo : MonoBehaviour
         ThisTask.Succeed();
     }
 
+  
     [Task]
     void CheckingPlayer()
     {
-        
+      
         if (lostPlayer)
         {
             Vector3 x = this.transform.position;
@@ -216,10 +281,6 @@ public class Guard_inimigo : MonoBehaviour
 
 
     }
-
-
-
-
 
 
 
