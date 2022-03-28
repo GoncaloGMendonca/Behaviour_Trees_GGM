@@ -1,0 +1,14 @@
+tree("Root")
+	while
+	   CanSeePlayer
+	   sequence
+		 FollowPlayer
+
+
+tree("ChasePlayer)
+
+
+
+tree("BackToPatrol")
+
+

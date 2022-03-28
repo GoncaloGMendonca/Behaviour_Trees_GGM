@@ -1,0 +1,50 @@
+tree("Root")
+	fallback 
+		tree("Idle")
+		tree("ChasePlayerTree")
+
+		//tree("ChasePlayerTree")
+		//tree("LostPlayer")
+		//tree("GoPosition")
+		
+
+
+tree("Idle")
+	while Idle
+		Idling   
+
+
+		
+tree("ChasePlayerTree")
+		sequence		
+			CanSeePlayerTask			
+			AlertNearEnemies
+			while CanSeePlayer		
+				sequence
+					ChaseThePlayerTask
+					CanSeePlayerTask
+
+	
+
+tree("GoPosition")
+	while isPatrolling
+		GoBackToOriginPosition  
+
+
+
+tree("LostPlayer")
+	sequence		
+		LostPlayerPanic
+		CheckingPlayer
+		Wait 2.0
+		CanSeePlayerTask 
+		Wait 2.0
+		LostPlayerPanic
+		CheckingPlayer
+		Wait 2.0
+		AvoidLost
+		tree("GoPosition")
+
+
+		
+

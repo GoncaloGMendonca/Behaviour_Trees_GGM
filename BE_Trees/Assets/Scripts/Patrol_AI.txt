@@ -1,0 +1,40 @@
+tree("Root")
+	fallback 
+		  tree("PatrolAroundPoints")
+		  tree("AlertEnemiesToHelp")
+		  tree("ChasePlayerTree")	   
+	  	  tree("LostPlayer")
+
+
+tree("PatrolAroundPoints")
+	while isPatrolling 
+		sequence
+				PatrollingAroundPoints
+				CanSeePlayerTask
+
+
+tree("AlertEnemiesToHelp")
+	while alertEnemieHelp
+		AlertNearEnemies
+		
+
+tree("ChasePlayerTree")
+		sequence		
+			CanSeePlayerTask			
+			while CanSeePlayer		
+				sequence
+					ChaseThePlayerTask
+					CanSeePlayerTask
+		   
+
+tree("LostPlayer")
+	sequence		
+		LostPlayerPanic
+		CheckingPlayer
+		Wait 2.0
+		CanSeePlayerTask 
+		Wait 2.0
+		LostPlayerPanic
+		CheckingPlayer
+		Wait 2.0
+		CanSeePlayerTask 
